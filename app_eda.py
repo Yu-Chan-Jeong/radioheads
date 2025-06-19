@@ -219,27 +219,29 @@ class EDA:
         orig_df['Births']     = pd.to_numeric(orig_df['출생아수(명)'], errors='coerce')
         orig_df['Deaths']     = pd.to_numeric(orig_df['사망자수(명)'], errors='coerce')
 
-        # 3) Regional DF (exclude nationwide)
+        # 3) Prepare regional DataFrame (exclude nationwide)
         region_df = orig_df[orig_df['지역'] != '전국'].copy()
+
+        # 4) Pivot on Korean region names, then rename columns to English
         region_map = {
             '서울특별시':'Seoul','부산광역시':'Busan','대구광역시':'Daegu',
             '인천광역시':'Incheon','광주광역시':'Gwangju','대전광역시':'Daejeon',
-            '울산광역시':'Ulsan','세종특별자치시':'Sejong','경기도':'Gyeonggi',
-            '강원도':'Gangwon','충청북도':'Chungbuk','충청남도':'Chungnam',
-            '전라북도':'Jeonbuk','전라남도':'Jeonnam','경상북도':'Gyeongbuk',
-            '경상남도':'Gyeongnam','제주특별자치도':'Jeju'
+            '울산광역시':'Ulsan','세종특별자치시':'Sejong','세종':'Sejong',
+            '경기도':'Gyeonggi','강원도':'Gangwon','충청북도':'Chungbuk',
+            '충청남도':'Chungnam','전라북도':'Jeonbuk','전라남도':'Jeonnam',
+            '경상북도':'Gyeongbuk','경상남도':'Gyeongnam','제주특별자치도':'Jeju',
+            '제주도':'Jeju'
         }
-        region_df['Region'] = region_df['지역'].map(region_map)
-        region_df = region_df.dropna(subset=['Population'])
+        # Pivot
+        pivot_raw = region_df.pivot_table(
+            index='Year', 
+            columns='지역', 
+            values='Population', 
+            aggfunc='sum'
+        ).fillna(0).sort_index()
 
-        # 4) Pivot table
-        pivot = (
-            region_df
-            .pivot_table(index='Year', columns='Region', values='Population', aggfunc='sum')
-            .fillna(0)
-            .sort_index()
-        )
-        pivot = pivot.astype(float)
+        # Rename columns to English
+        pivot = pivot_raw.rename(columns=region_map)
 
         # 5) Tabs
         tabs = st.tabs(["Basic Stats", "Nationwide Trend", "Region Distribution", "Change Analysis", "Visualization"])
@@ -276,47 +278,53 @@ class EDA:
 
         # Tab 3: Region Distribution
         with tabs[2]:
-            st.header("Population Distribution by Region")
+            st.header("Population by Region (Latest Year)")
             years = pivot.index.tolist()
-            latest = max(years)
-            dist = pivot.loc[latest].sort_values(ascending=False)
-            fig2, ax2 = plt.subplots(figsize=(10,6))
-            sns.barplot(x=dist.values/1000, y=dist.index, ax=ax2, palette="tab20")
-            ax2.set_title(f"Population by Region in {latest}")
-            ax2.set_xlabel("Population (Thousands)")
-            ax2.set_ylabel("Region")
-            st.pyplot(fig2)
+            if not years:
+                st.warning("No regional data available.")
+            else:
+                latest = max(years)
+                dist = pivot.loc[latest].sort_values(ascending=False)
+                fig2, ax2 = plt.subplots(figsize=(10,6))
+                sns.barplot(x=dist.values/1000, y=dist.index, ax=ax2, palette="tab20")
+                ax2.set_title(f"Population by Region in {latest}")
+                ax2.set_xlabel("Population (Thousands)")
+                ax2.set_ylabel("Region")
+                st.pyplot(fig2)
 
         # Tab 4: Change Analysis
         with tabs[3]:
             st.header("5-Year Change Analysis")
             years = sorted(pivot.index.tolist())
-            last_year = years[-1]
-            # always compare earliest vs latest
-            year_5ago = years[0]
-            pop_now  = pivot.loc[last_year]
-            pop_past = pivot.loc[year_5ago]
-            change = pop_now - pop_past
-            rate   = (change / pop_past) * 100
-            df_change = pd.DataFrame({'Change': change, 'Rate': rate}).sort_values('Change', ascending=False)
+            if len(years) < 2:
+                st.warning("Not enough data for change analysis.")
+            else:
+                last_year = years[-1]
+                # Compare first and last year for change
+                first_year = years[0]
+                pop_now  = pivot.loc[last_year]
+                pop_past = pivot.loc[first_year]
+                change = pop_now - pop_past
+                rate   = (change / pop_past) * 100
+                df_change = pd.DataFrame({'Change': change, 'Rate': rate}).sort_values('Change', ascending=False)
 
-            fig3, ax3 = plt.subplots(figsize=(8,6))
-            sns.barplot(x=df_change['Change']/1000, y=df_change.index, ax=ax3, palette="Blues_d")
-            ax3.set_title(f"Change from {year_5ago} to {last_year}")
-            ax3.set_xlabel("Change (Thousands)")
-            st.pyplot(fig3)
+                fig3, ax3 = plt.subplots(figsize=(8,6))
+                sns.barplot(x=df_change['Change']/1000, y=df_change.index, ax=ax3, palette="Blues_d")
+                ax3.set_title(f"Change from {first_year} to {last_year}")
+                ax3.set_xlabel("Change (Thousands)")
+                st.pyplot(fig3)
 
-            fig4, ax4 = plt.subplots(figsize=(8,6))
-            sns.barplot(x=df_change['Rate'], y=df_change.index, ax=ax4, palette="coolwarm")
-            ax4.set_title(f"Change Rate from {year_5ago} to {last_year} (%)")
-            ax4.set_xlabel("Rate (%)")
-            st.pyplot(fig4)
+                fig4, ax4 = plt.subplots(figsize=(8,6))
+                sns.barplot(x=df_change['Rate'], y=df_change.index, ax=ax4, palette="coolwarm")
+                ax4.set_title(f"Change Rate from {first_year} to {last_year} (%)")
+                ax4.set_xlabel("Rate (%)")
+                st.pyplot(fig4)
 
-        # Tab 5: Visualization
+        # Tab 5: Visualization (Cumulative Area)
         with tabs[4]:
             st.header("Cumulative Population Area Chart")
             years_arr = np.array(pivot.index.tolist(), dtype=int)
-            data = [pivot[col].to_numpy() for col in pivot.columns]
+            data = [pivot[col].to_numpy(dtype=float) for col in pivot.columns]
             fig5, ax5 = plt.subplots(figsize=(12,7))
             palette = sns.color_palette("tab20", n_colors=len(data))
             cum = np.zeros_like(years_arr, dtype=float)
