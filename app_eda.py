@@ -281,8 +281,6 @@ class EDA:
         # Change Analysis
         with tabs[3]:
             st.header("5-Year Change Analysis")
-
-            # ① Year 리스트를 index에서 가져오기
             years = pivot.index.tolist()
             if len(years) < 2:
                 st.warning("Not enough data for change analysis.")
@@ -290,63 +288,46 @@ class EDA:
                 years = sorted(years)
                 last_year = years[-1]
                 year_5ago = years[-6] if len(years) > 5 else years[0]
-
-                # ② 각 Region별 5년 전·현재 인구 시리즈 뽑기
-                pop_now   = pivot.loc[last_year]
-                pop_past  = pivot.loc[year_5ago]
-
-                # ③ 변화량·변화율 계산
+                pop_now  = pivot.loc[last_year]
+                pop_past = pivot.loc[year_5ago]
                 change = pop_now - pop_past
-                rate   = change / pop_past * 100
-
+                rate   = (change / pop_past) * 100
                 df_change = pd.DataFrame({
                     'Change': change,
                     'Rate':   rate
                 }).sort_values('Change', ascending=False)
 
-                # ④ 절댓값 변화량 막대
                 fig1, ax1 = plt.subplots(figsize=(8,6))
-                sns.barplot(
-                    x=df_change['Change']/1000,
-                    y=df_change.index,
-                    ax=ax1,
-                    palette="Blues_d"
-                )
+                sns.barplot(x=df_change['Change']/1000, y=df_change.index, ax=ax1, palette="Blues_d")
                 ax1.set_title("5-Year Population Change")
                 ax1.set_xlabel("Change (Thousands)")
                 st.pyplot(fig1)
-  
-                # ⑤ 변화율 막대
+
                 fig2, ax2 = plt.subplots(figsize=(8,6))
-                sns.barplot(
-                    x=df_change['Rate'],
-                    y=df_change.index,
-                    ax=ax2,
-                    palette="coolwarm"
-                )
+                sns.barplot(x=df_change['Rate'], y=df_change.index, ax=ax2, palette="coolwarm")
                 ax2.set_title("5-Year Change Rate (%)")
                 ax2.set_xlabel("Rate (%)")
                 st.pyplot(fig2)
 
-        # Visualization
-        with tabs[4]:
-            st.header("Cumulative Population Area Chart")
-            years = pivot.index.astype(int).to_numpy()
-            data = [pivot[col].to_numpy(dtype=float) for col in pivot.columns]
+            # Visualization
+            with tabs[4]:
+                st.header("Cumulative Population Area Chart")
+                years = pivot.index.astype(int).to_numpy()
+                data = [pivot[col].to_numpy(dtype=float) for col in pivot.columns]
 
-            fig3, ax3 = plt.subplots(figsize=(12,7))
-            palette = sns.color_palette("tab20", n_colors=len(data))
-            cum = np.zeros_like(years, dtype=float)
-            for vals, color, label in zip(data, palette, pivot.columns):
-                ax3.fill_between(years, cum, cum + vals, label=label, color=color)
-                cum += vals
+                fig3, ax3 = plt.subplots(figsize=(12,7))
+                palette = sns.color_palette("tab20", n_colors=len(data))
+                cum = np.zeros_like(years, dtype=float)
+                for vals, color, label in zip(data, palette, pivot.columns):
+                    ax3.fill_between(years, cum, cum + vals, label=label, color=color)
+                    cum += vals
 
-            ax3.set_title("Population by Region Over Years")
-            ax3.set_xlabel("Year")
-            ax3.set_ylabel("Population")
-            ax3.legend(title="Region", bbox_to_anchor=(1,1))
-            plt.tight_layout()
-            st.pyplot(fig3)
+                ax3.set_title("Population by Region Over Years")
+                ax3.set_xlabel("Year")
+                ax3.set_ylabel("Population")
+                ax3.legend(title="Region", bbox_to_anchor=(1,1))
+                plt.tight_layout()
+                st.pyplot(fig3)
 # ---------------------
 # 페이지 객체 생성
 # ---------------------
