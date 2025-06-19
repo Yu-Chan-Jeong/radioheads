@@ -307,12 +307,14 @@ class EDA:
                 sns.barplot(x=df_change['Change']/1000, y=df_change.index, ax=ax3, palette="Blues_d")
                 ax3.set_title(f"Change from {first_year} to {last_year}")
                 ax3.set_xlabel("Change (Thousands)")
+                ax3.set_ylabel("Region")
                 st.pyplot(fig3)
 
                 fig4, ax4 = plt.subplots(figsize=(8,6))
                 sns.barplot(x=df_change['Rate'], y=df_change.index, ax=ax4, palette="coolwarm")
                 ax4.set_title(f"Change Rate from {first_year} to {last_year} (%)")
                 ax4.set_xlabel("Rate (%)")
+                ax2.set_ylabel("Region")
                 st.pyplot(fig4)
 
         # Tab 5: Visualization (Cumulative Area)
