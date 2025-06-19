@@ -42,7 +42,7 @@ if "logged_in" not in st.session_state:
 # ---------------------
 class Home:
     def __init__(self, login_page, register_page, findpw_page):
-            st.title("🏠 Home")
+    st.title("🏠 Home")
     if st.session_state.get("logged_in"):
         st.success(f"{st.session_state.get('user_email')}님, 환영합니다.")
 
