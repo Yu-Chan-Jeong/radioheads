@@ -281,33 +281,29 @@ class EDA:
         # Change Analysis
         with tabs[3]:
             st.header("5-Year Change Analysis")
-            years = pivot.index.tolist()
+            years = sorted(pivot.index.tolist())
             if len(years) < 2:
                 st.warning("Not enough data for change analysis.")
             else:
-                years = sorted(years)
                 last_year = years[-1]
                 year_5ago = years[-6] if len(years) > 5 else years[0]
                 pop_now  = pivot.loc[last_year]
                 pop_past = pivot.loc[year_5ago]
                 change = pop_now - pop_past
                 rate   = (change / pop_past) * 100
-                df_change = pd.DataFrame({
-                    'Change': change,
-                    'Rate':   rate
-                }).sort_values('Change', ascending=False)
+                df_change = pd.DataFrame({'Change': change, 'Rate': rate}).sort_values('Change', ascending=False)
 
-                fig1, ax1 = plt.subplots(figsize=(8,6))
-                sns.barplot(x=df_change['Change']/1000, y=df_change.index, ax=ax1, palette="Blues_d")
-                ax1.set_title("5-Year Population Change")
-                ax1.set_xlabel("Change (Thousands)")
-                st.pyplot(fig1)
+                fig3, ax3 = plt.subplots(figsize=(8,6))
+                sns.barplot(x=df_change['Change']/1000, y=df_change.index, ax=ax3, palette="Blues_d")
+                ax3.set_title(f"5-Year Population Change ({year_5ago}→{last_year})")
+                ax3.set_xlabel("Change (Thousands)")
+                st.pyplot(fig3)
 
-                fig2, ax2 = plt.subplots(figsize=(8,6))
-                sns.barplot(x=df_change['Rate'], y=df_change.index, ax=ax2, palette="coolwarm")
-                ax2.set_title("5-Year Change Rate (%)")
-                ax2.set_xlabel("Rate (%)")
-                st.pyplot(fig2)
+                fig4, ax4 = plt.subplots(figsize=(8,6))
+                sns.barplot(x=df_change['Rate'], y=df_change.index, ax=ax4, palette="coolwarm")
+                ax4.set_title(f"5-Year Change Rate ({year_5ago}→{last_year})")
+                ax4.set_xlabel("Rate (%)")
+                st.pyplot(fig4))
 
             # Visualization
             with tabs[4]:
